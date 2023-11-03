@@ -373,7 +373,7 @@ export function LineGraph_({
         const seriesMax = Math.max(...datasets.flatMap((d) => d.data).filter((n) => !!n))
         const precision = seriesMax < 5 ? 1 : seriesMax < 2 ? 2 : 0
         const tickOptions: Partial<TickOptions> = {
-            color: '#2d2d2d' as Color,
+            color: colors.axisLabel as Color,
             font: {
                 family: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Roboto", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
                 size: 12,
@@ -592,7 +592,15 @@ export function LineGraph_({
                     ticks: {
                         ...tickOptions,
                         precision,
-                        ...(inSurveyView ? { padding: 10 } : {}),
+                        ...(inSurveyView
+                            ? {
+                                  padding: 10,
+                                  font: {
+                                      size: 14,
+                                      weight: '600',
+                                  },
+                              }
+                            : {}),
                     },
                     grid: inSurveyView ? { display: false } : gridOptions,
                 },

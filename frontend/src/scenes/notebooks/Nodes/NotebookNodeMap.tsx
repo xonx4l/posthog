@@ -1,58 +1,15 @@
-import React, { useEffect, useRef } from 'react'
-import { Map as RawMap, Marker } from 'maplibre-gl'
-
-import 'maplibre-gl/dist/maplibre-gl.css'
+import { Marker } from 'maplibre-gl'
 
 import { NotebookNodeType } from '~/types'
 import { createPostHogWidgetNode } from 'scenes/notebooks/Nodes/NodeWrapper'
-import { useResizeObserver } from 'lib/hooks/useResizeObserver'
-import { NotebookNodeProps } from '../Notebook/utils'
 import { personLogic } from 'scenes/persons/personLogic'
 import { useValues } from 'kea'
 import { LemonSkeleton } from '@posthog/lemon-ui'
 import { NotFound } from 'lib/components/NotFound'
+import { Map } from '../../../lib/components/Map/Map'
 import { notebookNodeLogic } from './notebookNodeLogic'
-
-/** Latitude and longtitude in degrees (+lat is east, -lat is west, +lon is south, -lon is north). */
-export interface MapProps {
-    /** Coordinates to center the map on by default. */
-    center: [number, number]
-    /** Markers to show. */
-    markers?: Marker[]
-    style?: React.CSSProperties
-}
-
-export function Map({ center, markers, style }: MapProps): JSX.Element {
-    const mapContainer = useRef<HTMLDivElement>(null)
-    const map = useRef<RawMap | null>(null)
-
-    useEffect(() => {
-        map.current = new RawMap({
-            container: mapContainer.current as HTMLElement,
-            style: `https://api.maptiler.com/maps/streets-v2/style.json?key=zir7QMNVAfEFm1rVDNV2`,
-            center,
-            zoom: 2,
-            maxZoom: 10,
-        })
-        if (markers) {
-            for (const marker of markers) {
-                marker.addTo(map.current) // TODO: Show markers below city labels
-            }
-        }
-    }, [])
-
-    useResizeObserver({
-        ref: mapContainer,
-        onResize: () => {
-            if (map.current) {
-                map.current.resize()
-            }
-        },
-    })
-
-    // eslint-disable-next-line react/forbid-dom-props
-    return <div ref={mapContainer} style={style} />
-}
+import { NotebookNodeProps } from 'scenes/notebooks/Notebook/utils'
+import { NotebookNodeEmptyState } from './components/NotebookNodeEmptyState'
 
 const Component = ({ attributes }: NotebookNodeProps<NotebookNodeMapAttributes>): JSX.Element | null => {
     const { id } = attributes
@@ -77,18 +34,14 @@ const Component = ({ attributes }: NotebookNodeProps<NotebookNodeMapAttributes>)
         !isNaN(longtitude) && !isNaN(latitude) ? [longtitude, latitude] : null
 
     if (!personCoordinates) {
-        return (
-            <span>
-                <i>No Map available.</i>
-            </span>
-        )
+        return <NotebookNodeEmptyState message="No map available." />
     }
 
     return (
         <Map
             center={personCoordinates}
             markers={[new Marker({ color: 'var(--primary)' }).setLngLat(personCoordinates)]}
-            style={{ height: '14rem' }}
+            className="h-full"
         />
     )
 }
@@ -101,7 +54,8 @@ export const NotebookNodeMap = createPostHogWidgetNode<NotebookNodeMapAttributes
     nodeType: NotebookNodeType.Map,
     titlePlaceholder: 'Location',
     Component,
-    resizeable: false,
+    resizeable: true,
+    heightEstimate: 150,
     expandable: true,
     startExpanded: true,
     attributes: {

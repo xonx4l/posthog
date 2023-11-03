@@ -7,8 +7,6 @@ import { uuid } from 'lib/utils'
 
 export const NotebookColumnRight = (): JSX.Element | null => {
     const { isShowingLeftColumn, nodeLogicsWithChildren } = useValues(notebookLogic)
-
-    console.log('NotebookColumnRight', { isShowingLeftColumn, nodeLogicsWithChildren })
     const isShowing = nodeLogicsWithChildren.length && !isShowingLeftColumn
 
     return (
@@ -17,6 +15,7 @@ export const NotebookColumnRight = (): JSX.Element | null => {
                 'NotebookColumn--showing': isShowing,
             })}
         >
+            <div className="NotebookColumn__padding" />
             <div className="NotebookColumn__content">
                 {isShowing ? (
                     <>
@@ -43,7 +42,7 @@ const Widgets = ({ nodeLogic }: { nodeLogic: BuiltLogic<notebookNodeLogicType> }
 
     return (
         <>
-            {children?.map((child, i) => (
+            {children?.map((child) => (
                 <NotebookNodeChildRenderer key={child.attrs.nodeId} nodeLogic={nodeLogic} content={child} />
             ))}
         </>

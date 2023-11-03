@@ -110,6 +110,7 @@ function PersonCaption({ person }: { person: PersonType }): JSX.Element {
 export function PersonScene(): JSX.Element | null {
     const {
         showCustomerSuccessDashboards,
+        feedEnabled,
         person,
         personLoading,
         currentTab,
@@ -186,6 +187,13 @@ export function PersonScene(): JSX.Element | null {
                 }}
                 data-attr="persons-tabs"
                 tabs={[
+                    feedEnabled
+                        ? {
+                              key: PersonsTabType.FEED,
+                              label: <span data-attr="persons-feed-tab">Feed</span>,
+                              content: <PersonFeedCanvas person={person} />,
+                          }
+                        : false,
                     {
                         key: PersonsTabType.FEED,
                         label: <span data-attr="persons-feed-tab">Feed</span>,

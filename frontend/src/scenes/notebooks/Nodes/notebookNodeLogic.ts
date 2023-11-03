@@ -29,26 +29,20 @@ import posthog from 'posthog-js'
 import { NotebookNodeMessages, NotebookNodeMessagesListeners } from './messaging/notebook-node-messages'
 
 export type NotebookNodeLogicProps = {
-    nodeId: string
     nodeType: NotebookNodeType
     notebookLogic: BuiltLogic<notebookLogicType>
     getPos?: () => number
-    resizeable: boolean | ((attributes: CustomNotebookNodeAttributes) => boolean)
-    settings: NotebookNodeSettings
+    resizeable?: boolean | ((attributes: CustomNotebookNodeAttributes) => boolean)
+    Settings?: NotebookNodeSettings
     messageListeners?: NotebookNodeMessagesListeners
-    startExpanded: boolean
+    startExpanded?: boolean
     titlePlaceholder: string
 } & NotebookNodeAttributeProperties<any>
-
-const computeResizeable = (
-    resizeable: NotebookNodeLogicProps['resizeable'],
-    attrs: NotebookNodeLogicProps['attributes']
-): boolean => (typeof resizeable === 'function' ? resizeable(attrs) : resizeable)
 
 export const notebookNodeLogic = kea<notebookNodeLogicType>([
     props({} as NotebookNodeLogicProps),
     path((key) => ['scenes', 'notebooks', 'Notebook', 'Nodes', 'notebookNodeLogic', key]),
-    key(({ nodeId }) => nodeId || 'no-node-id-set'),
+    key(({ attributes }) => attributes.nodeId || 'no-node-id-set'),
     actions({
         setExpanded: (expanded: boolean) => ({ expanded }),
         setResizeable: (resizeable: boolean) => ({ resizeable }),
@@ -79,7 +73,7 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
 
     reducers(({ props }) => ({
         expanded: [
-            props.startExpanded,
+            props.startExpanded ?? true,
             {
                 setExpanded: (_, { expanded }) => expanded,
             },
@@ -114,7 +108,6 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
                 setMessageListeners: (_, { listeners }) => listeners,
             },
         ],
-
         titlePlaceholder: [
             props.titlePlaceholder,
             {
@@ -127,7 +120,8 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
         notebookLogic: [(_, p) => [p.notebookLogic], (notebookLogic) => notebookLogic],
         nodeAttributes: [(_, p) => [p.attributes], (nodeAttributes) => nodeAttributes],
         nodeId: [(_, p) => [p.attributes], (nodeAttributes): string => nodeAttributes.nodeId],
-        settings: [(_, p) => [p.settings], (settings) => settings],
+        Settings: [() => [(_, props) => props], (props): NotebookNodeSettings | null => props.Settings ?? null],
+
         title: [
             (s) => [s.titlePlaceholder, s.nodeAttributes],
             (titlePlaceholder, nodeAttributes) => nodeAttributes.title || titlePlaceholder,
@@ -182,7 +176,7 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
 
             const logic = values.notebookLogic
             logic.values.editor?.deleteRange({ from: props.getPos(), to: props.getPos() + 1 }).run()
-            if (values.notebookLogic.values.editingNodeId === props.nodeId) {
+            if (values.notebookLogic.values.editingNodeId === values.nodeId) {
                 values.notebookLogic.actions.setEditingNodeId(null)
             }
         },
@@ -223,7 +217,7 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
                 timestamp,
                 sessionRecordingId,
                 knownStartingPosition: insertionPosition,
-                nodeId: props.nodeId,
+                nodeId: values.nodeId,
             })
         },
         insertOrSelectNextLine: () => {
@@ -231,7 +225,7 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
                 return
             }
 
-            if (!values.nextNode || values.nextNode.type.name !== 'paragraph') {
+            if (!values.nextNode || !values.nextNode.isTextblock) {
                 actions.insertAfter({
                     type: 'paragraph',
                 })
@@ -254,7 +248,7 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
         },
         toggleEditing: () => {
             props.notebookLogic.actions.setEditingNodeId(
-                props.notebookLogic.values.editingNodeId === props.nodeId ? null : props.nodeId
+                props.notebookLogic.values.editingNodeId === values.nodeId ? null : values.nodeId
             )
         },
         initializeNode: () => {
@@ -273,14 +267,19 @@ export const notebookNodeLogic = kea<notebookNodeLogicType>([
     })),
 
     afterMount(async (logic) => {
-        logic.props.notebookLogic.actions.registerNodeLogic(logic as any)
-        const resizeable = computeResizeable(logic.props.resizeable, logic.props.attributes)
-        logic.actions.setResizeable(resizeable)
-        logic.actions.initializeNode()
+        const { props, actions, values } = logic
+        props.notebookLogic.actions.registerNodeLogic(values.nodeId, logic as any)
+
+        const isResizeable =
+            typeof props.resizeable === 'function' ? props.resizeable(props.attributes) : props.resizeable ?? true
+
+        actions.setResizeable(isResizeable)
+        actions.initializeNode()
     }),
 
-    beforeUnmount((logic) => {
-        logic.props.notebookLogic.actions.unregisterNodeLogic(logic as any)
+    beforeUnmount(({ props, values }) => {
+        // Note this doesn't work as there may be other places where this is used. The NodeWrapper should be in charge of somehow unmounting this
+        props.notebookLogic.actions.unregisterNodeLogic(values.nodeId)
     }),
 ])
 

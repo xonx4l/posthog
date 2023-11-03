@@ -244,10 +244,10 @@ class HogQLNotice(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    end: Optional[float] = None
+    end: Optional[int] = None
     fix: Optional[str] = None
     message: str
-    start: Optional[float] = None
+    start: Optional[int] = None
 
 
 class InCohortVia(str, Enum):
@@ -338,7 +338,8 @@ class NodeKind(str, Enum):
     PathsQuery = "PathsQuery"
     StickinessQuery = "StickinessQuery"
     LifecycleQuery = "LifecycleQuery"
-    WebOverviewStatsQuery = "WebOverviewStatsQuery"
+    InsightPersonsQuery = "InsightPersonsQuery"
+    WebOverviewQuery = "WebOverviewQuery"
     WebTopClicksQuery = "WebTopClicksQuery"
     WebStatsTableQuery = "WebStatsTableQuery"
     TimeToSeeDataSessionsQuery = "TimeToSeeDataSessionsQuery"
@@ -611,18 +612,34 @@ class TrendsQueryResponse(BaseModel):
     timings: Optional[List[QueryTiming]] = None
 
 
-class WebOverviewStatsQueryResponse(BaseModel):
+class Kind(str, Enum):
+    unit = "unit"
+    duration_s = "duration_s"
+    percentage = "percentage"
+
+
+class WebOverviewItem(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    columns: Optional[List] = None
+    changeFromPreviousPct: Optional[float] = None
+    isIncreaseBad: Optional[bool] = None
+    key: str
+    kind: Kind
+    previous: Optional[float] = None
+    value: Optional[float] = None
+
+
+class WebOverviewQueryResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
     hogql: Optional[str] = None
     is_cached: Optional[bool] = None
     last_refresh: Optional[str] = None
     next_allowed_client_refresh: Optional[str] = None
-    results: List
+    results: List[WebOverviewItem]
     timings: Optional[List[QueryTiming]] = None
-    types: Optional[List] = None
 
 
 class WebStatsBreakdown(str, Enum):
@@ -631,9 +648,15 @@ class WebStatsBreakdown(str, Enum):
     InitialReferringDomain = "InitialReferringDomain"
     InitialUTMSource = "InitialUTMSource"
     InitialUTMCampaign = "InitialUTMCampaign"
+    InitialUTMMedium = "InitialUTMMedium"
+    InitialUTMTerm = "InitialUTMTerm"
+    InitialUTMContent = "InitialUTMContent"
     Browser = "Browser"
     OS = "OS"
     DeviceType = "DeviceType"
+    Country = "Country"
+    Region = "Region"
+    City = "City"
 
 
 class WebStatsTableQueryResponse(BaseModel):
@@ -926,18 +949,18 @@ class WebAnalyticsQueryBase(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    dateRange: DateRange
+    dateRange: Optional[DateRange] = None
     properties: List[Union[EventPropertyFilter, HogQLPropertyFilter]]
 
 
-class WebOverviewStatsQuery(BaseModel):
+class WebOverviewQuery(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    dateRange: DateRange
-    kind: Literal["WebOverviewStatsQuery"] = "WebOverviewStatsQuery"
+    dateRange: Optional[DateRange] = None
+    kind: Literal["WebOverviewQuery"] = "WebOverviewQuery"
     properties: List[Union[EventPropertyFilter, HogQLPropertyFilter]]
-    response: Optional[WebOverviewStatsQueryResponse] = None
+    response: Optional[WebOverviewQueryResponse] = None
 
 
 class WebStatsTableQuery(BaseModel):
@@ -945,7 +968,7 @@ class WebStatsTableQuery(BaseModel):
         extra="forbid",
     )
     breakdownBy: WebStatsBreakdown
-    dateRange: DateRange
+    dateRange: Optional[DateRange] = None
     kind: Literal["WebStatsTableQuery"] = "WebStatsTableQuery"
     properties: List[Union[EventPropertyFilter, HogQLPropertyFilter]]
     response: Optional[WebStatsTableQueryResponse] = None
@@ -955,7 +978,7 @@ class WebTopClicksQuery(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    dateRange: DateRange
+    dateRange: Optional[DateRange] = None
     kind: Literal["WebTopClicksQuery"] = "WebTopClicksQuery"
     properties: List[Union[EventPropertyFilter, HogQLPropertyFilter]]
     response: Optional[WebTopClicksQueryResponse] = None
@@ -1293,10 +1316,14 @@ class SessionsTimelineQuery(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    after: str = Field(..., description="Only fetch sessions that started after this timestamp")
-    before: str = Field(..., description="Only fetch sessions that started before this timestamp")
+    after: Optional[str] = Field(
+        default=None, description="Only fetch sessions that started after this timestamp (default: '-24h')"
+    )
+    before: Optional[str] = Field(
+        default=None, description="Only fetch sessions that started before this timestamp (default: '+5s')"
+    )
     kind: Literal["SessionsTimelineQuery"] = "SessionsTimelineQuery"
-    personId: Optional[str] = Field(default=None, description="Show sessions for a given person")
+    personId: Optional[str] = Field(default=None, description="Fetch sessions only for a given person")
     response: Optional[SessionsTimelineQueryResponse] = Field(default=None, description="Cached query response")
 
 
@@ -1677,6 +1704,36 @@ class PathsQuery(BaseModel):
     samplingFactor: Optional[float] = Field(default=None, description="Sampling rate")
 
 
+class InsightVizNode(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    embedded: Optional[bool] = Field(default=None, description="Query is embedded inside another bordered component")
+    full: Optional[bool] = Field(
+        default=None, description="Show with most visual options enabled. Used in insight scene."
+    )
+    kind: Literal["InsightVizNode"] = "InsightVizNode"
+    showCorrelationTable: Optional[bool] = None
+    showFilters: Optional[bool] = None
+    showHeader: Optional[bool] = None
+    showLastComputation: Optional[bool] = None
+    showLastComputationRefresh: Optional[bool] = None
+    showResults: Optional[bool] = None
+    showTable: Optional[bool] = None
+    source: Union[TrendsQuery, FunnelsQuery, RetentionQuery, PathsQuery, StickinessQuery, LifecycleQuery]
+
+
+class InsightPersonsQuery(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    day: Optional[str] = None
+    kind: Literal["InsightPersonsQuery"] = "InsightPersonsQuery"
+    response: Optional[PersonsQueryResponse] = None
+    source: Union[TrendsQuery, FunnelsQuery, RetentionQuery, PathsQuery, StickinessQuery, LifecycleQuery]
+    status: Optional[str] = None
+
+
 class PersonsQuery(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -1720,7 +1777,7 @@ class PersonsQuery(BaseModel):
     response: Optional[PersonsQueryResponse] = Field(default=None, description="Cached query response")
     search: Optional[str] = None
     select: Optional[List[str]] = None
-    source: Optional[Union[LifecycleQuery, HogQLQuery]] = None
+    source: Optional[Union[InsightPersonsQuery, HogQLQuery]] = None
 
 
 class DataTableNode(BaseModel):
@@ -1773,29 +1830,10 @@ class DataTableNode(BaseModel):
         PersonsQuery,
         HogQLQuery,
         TimeToSeeDataSessionsQuery,
-        WebOverviewStatsQuery,
+        WebOverviewQuery,
         WebStatsTableQuery,
         WebTopClicksQuery,
     ] = Field(..., description="Source of the events")
-
-
-class InsightVizNode(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    embedded: Optional[bool] = Field(default=None, description="Query is embedded inside another bordered component")
-    full: Optional[bool] = Field(
-        default=None, description="Show with most visual options enabled. Used in insight scene."
-    )
-    kind: Literal["InsightVizNode"] = "InsightVizNode"
-    showCorrelationTable: Optional[bool] = None
-    showFilters: Optional[bool] = None
-    showHeader: Optional[bool] = None
-    showLastComputation: Optional[bool] = None
-    showLastComputationRefresh: Optional[bool] = None
-    showResults: Optional[bool] = None
-    showTable: Optional[bool] = None
-    source: Union[TrendsQuery, FunnelsQuery, RetentionQuery, PathsQuery, StickinessQuery, LifecycleQuery]
 
 
 class QuerySchema(RootModel):
@@ -1818,10 +1856,11 @@ class QuerySchema(RootModel):
             TimeToSeeDataSessionsQuery,
             EventsQuery,
             PersonsQuery,
+            InsightPersonsQuery,
             SessionsTimelineQuery,
             HogQLQuery,
             HogQLMetadata,
-            WebOverviewStatsQuery,
+            WebOverviewQuery,
             WebStatsTableQuery,
             WebTopClicksQuery,
         ],

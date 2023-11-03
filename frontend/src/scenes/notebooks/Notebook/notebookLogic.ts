@@ -83,8 +83,8 @@ export const notebookLogic = kea<notebookLogicType>([
         exportJSON: true,
         showConflictWarning: true,
         onUpdateEditor: true,
-        registerNodeLogic: (nodeLogic: BuiltLogic<notebookNodeLogicType>) => ({ nodeLogic }),
-        unregisterNodeLogic: (nodeLogic: BuiltLogic<notebookNodeLogicType>) => ({ nodeLogic }),
+        registerNodeLogic: (nodeId: string, nodeLogic: BuiltLogic<notebookNodeLogicType>) => ({ nodeId, nodeLogic }),
+        unregisterNodeLogic: (nodeId: string) => ({ nodeId }),
         setEditable: (editable: boolean) => ({ editable }),
         scrollToSelection: true,
         pasteAfterLastNode: (content: string) => ({
@@ -107,11 +107,12 @@ export const notebookLogic = kea<notebookLogicType>([
         }) => options,
         setShowHistory: (showHistory: boolean) => ({ showHistory }),
         setTextSelection: (selection: number | EditorRange) => ({ selection }),
+        setContainerSize: (containerSize: 'small' | 'medium') => ({ containerSize }),
     }),
     reducers(({ props }) => ({
         localContent: [
             null as JSONContent | null,
-            { persist: props.mode === 'notebook', prefix: NOTEBOOKS_VERSION },
+            { persist: props.mode !== 'canvas', prefix: NOTEBOOKS_VERSION },
             {
                 setLocalContent: (_, { jsonContent }) => jsonContent,
                 clearLocalContent: () => null,
@@ -152,20 +153,20 @@ export const notebookLogic = kea<notebookLogicType>([
         nodeLogics: [
             {} as Record<string, BuiltLogic<notebookNodeLogicType>>,
             {
-                registerNodeLogic: (state, { nodeLogic }) => {
-                    if (nodeLogic.props.nodeId === null) {
+                registerNodeLogic: (state, { nodeId, nodeLogic }) => {
+                    if (nodeId === null) {
                         return state
                     } else {
                         return {
                             ...state,
-                            [nodeLogic.props.nodeId]: nodeLogic,
+                            [nodeId]: nodeLogic,
                         }
                     }
                 },
-                unregisterNodeLogic: (state, { nodeLogic }) => {
+                unregisterNodeLogic: (state, { nodeId }) => {
                     const newState = { ...state }
-                    if (nodeLogic.props.nodeId !== null) {
-                        delete newState[nodeLogic.props.nodeId]
+                    if (nodeId !== null) {
+                        delete newState[nodeId]
                     }
                     return newState
                 },
@@ -183,6 +184,12 @@ export const notebookLogic = kea<notebookLogicType>([
                 setShowHistory: (_, { showHistory }) => showHistory,
             },
         ],
+        containerSize: [
+            'small' as 'small' | 'medium',
+            {
+                setContainerSize: (_, { containerSize }) => containerSize,
+            },
+        ],
     })),
     loaders(({ values, props, actions }) => ({
         notebook: [
@@ -198,7 +205,7 @@ export const notebookLogic = kea<notebookLogicType>([
                     if (props.shortId === SCRATCHPAD_NOTEBOOK.short_id) {
                         response = {
                             ...values.scratchpadNotebook,
-                            content: {},
+                            content: null,
                             text_content: null,
                             version: 0,
                         }
@@ -215,7 +222,7 @@ export const notebookLogic = kea<notebookLogicType>([
 
                     const notebook = migrate(response)
 
-                    if (!values.notebook) {
+                    if (!values.notebook && notebook.content) {
                         // If this is the first load we need to override the content fully
                         values.editor?.setContent(notebook.content)
                     }
@@ -347,7 +354,7 @@ export const notebookLogic = kea<notebookLogicType>([
         editingNodeLogic: [
             (s) => [s.editingNodeId, s.nodeLogics],
             (editingNodeId, nodeLogics) =>
-                Object.values(nodeLogics).find((nodeLogic) => nodeLogic.props.nodeId === editingNodeId),
+                Object.values(nodeLogics).find((nodeLogic) => nodeLogic.values.nodeId === editingNodeId),
         ],
         findNodeLogic: [
             (s) => [s.nodeLogics],
@@ -371,21 +378,25 @@ export const notebookLogic = kea<notebookLogicType>([
             (s) => [s.nodeLogics],
             (nodeLogics) => {
                 return (id: string) => {
-                    return Object.values(nodeLogics).find((nodeLogic) => nodeLogic.props.nodeId === id) ?? null
+                    return Object.values(nodeLogics).find((nodeLogic) => nodeLogic.values.nodeId === id) ?? null
                 }
             },
         ],
 
         nodeLogicsWithChildren: [
-            (s) => [s.nodeLogics],
-            (nodeLogics) => {
+            (s) => [s.nodeLogics, s.content],
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            (nodeLogics, _content) => {
+                // NOTE: _content is not but is needed to retrigger as it could mean the children have changed
                 return Object.values(nodeLogics).filter((nodeLogic) => nodeLogic.props.attributes?.children)
             },
         ],
 
         isShowingLeftColumn: [
-            (s) => [s.editingNodeId, s.showHistory],
-            (editingNodeId, showHistory) => !!editingNodeId || showHistory,
+            (s) => [s.editingNodeId, s.showHistory, s.containerSize],
+            (editingNodeId, showHistory, containerSize) => {
+                return showHistory || (!!editingNodeId && containerSize !== 'small')
+            },
         ],
 
         isEditable: [

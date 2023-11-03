@@ -16,10 +16,11 @@ export const NotebookColumnLeft = (): JSX.Element | null => {
                 'NotebookColumn--showing': isShowingLeftColumn,
             })}
         >
+            <div className="NotebookColumn__padding" />
             <div className="NotebookColumn__content">
                 {isShowingLeftColumn ? (
                     editingNodeLogic ? (
-                        <NodeSettings logic={editingNodeLogic} />
+                        <NotebookNodeSettingsWidget logic={editingNodeLogic} />
                     ) : showHistory ? (
                         <NotebookHistory />
                     ) : null
@@ -29,9 +30,9 @@ export const NotebookColumnLeft = (): JSX.Element | null => {
     )
 }
 
-const NodeSettings = ({ logic }: { logic: BuiltLogic<notebookNodeLogicType> }): JSX.Element => {
+export const NotebookNodeSettingsWidget = ({ logic }: { logic: BuiltLogic<notebookNodeLogicType> }): JSX.Element => {
     const { setEditingNodeId } = useActions(notebookLogic)
-    const { settings: Settings, nodeAttributes, title } = useValues(logic)
+    const { Settings, nodeAttributes, title } = useValues(logic)
     const { updateAttributes, selectNode } = useActions(logic)
 
     return (

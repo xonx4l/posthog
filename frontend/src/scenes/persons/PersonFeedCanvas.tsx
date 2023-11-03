@@ -1,12 +1,17 @@
+import { useValues } from 'kea'
+
 import { PersonType } from '~/types'
 import { Notebook } from 'scenes/notebooks/Notebook/Notebook'
 import { uuid } from 'lib/utils'
+import { preflightLogic } from 'scenes/PreflightCheck/preflightLogic'
 
 type PersonFeedCanvasProps = {
     person: PersonType
 }
 
 const PersonFeedCanvas = ({ person }: PersonFeedCanvasProps): JSX.Element => {
+    const { isCloudOrDev } = useValues(preflightLogic)
+
     const id = person.id
 
     const personId = person.distinct_ids[0]
@@ -24,7 +29,7 @@ const PersonFeedCanvas = ({ person }: PersonFeedCanvasProps): JSX.Element => {
                         attrs: {
                             height: null,
                             title: null,
-                            nodeId: '6d485066-ec99-483d-8b98-4d8a2dc9cc4b',
+                            nodeId: uuid(),
                             id: personId,
                             __init: null,
                             children: [
@@ -32,10 +37,14 @@ const PersonFeedCanvas = ({ person }: PersonFeedCanvasProps): JSX.Element => {
                                     type: 'ph-person',
                                     attrs: { id: personId, nodeId: uuid(), title: 'Info' },
                                 },
-                                {
-                                    type: 'ph-map',
-                                    attrs: { id: personId, nodeId: uuid() },
-                                },
+                                ...(isCloudOrDev
+                                    ? [
+                                          {
+                                              type: 'ph-map',
+                                              attrs: { id: personId, nodeId: uuid() },
+                                          },
+                                      ]
+                                    : []),
                                 {
                                     type: 'ph-properties',
                                     attrs: { id: personId, nodeId: uuid() },

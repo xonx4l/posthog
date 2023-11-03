@@ -8,6 +8,7 @@
         flex: 1;
         width: 100%;
         overflow: hidden;
+        position: relative;
 
         .ProseMirror {
             &-focused {
@@ -37,12 +38,40 @@
                 height: 0;
             }
 
+            > ol {
+                list-style-type: decimal;
+            }
+
             > ul {
                 list-style-type: disc;
             }
 
-            > ol {
-                list-style-type: decimal;
+            > ul[data-type='taskList'] {
+                list-style-type: none;
+                padding-left: 0px;
+
+                li {
+                    display: flex;
+
+                    > label {
+                        flex: 0 0 auto;
+                        margin-right: 0.5rem;
+                        user-select: none;
+                    }
+
+                    > div {
+                        flex: 1 1 auto;
+                    }
+
+                    ul li,
+                    ol li {
+                        display: list-item;
+                    }
+
+                    ul[data-type='taskList'] > li {
+                        display: flex;
+                    }
+                }
             }
 
             > ul,
@@ -110,7 +139,7 @@
         }
     }
 
-    &--compact {
+    &--compact:not(.Notebook--canvas) {
         .NotebookEditor {
             max-width: 800px;
         }
@@ -131,12 +160,6 @@
 
         --notebook-sidebar-height: calc(100vh - 9rem);
 
-        .NotebookScene & {
-            --notebook-sidebar-height: calc(100vh - 11rem);
-            // Account for fixed title
-            padding-top: 4rem;
-        }
-
         .NotebookColumn__content {
             position: sticky;
             align-self: flex-start;
@@ -144,11 +167,22 @@
 
             transform: translateX(-100%);
             transition: transform var(--notebook-popover-transition-properties);
+        }
 
-            .NotebookScene & {
-                // NOTE: This is a hack to account for sticky header
-                // We should do this better
-                top: calc(4rem);
+        .NotebookScene &,
+        .NotebookPopover & {
+            --notebook-sidebar-height: calc(100vh - 11rem);
+
+            .NotebookColumn__padding {
+                // Account for fixed title
+                height: 4rem;
+            }
+        }
+
+        .NotebookScene & {
+            .NotebookColumn__content {
+                // Account for static header
+                top: 4rem;
             }
         }
 

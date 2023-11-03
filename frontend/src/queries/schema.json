@@ -93,6 +93,9 @@
                     "$ref": "#/definitions/PersonsQuery"
                 },
                 {
+                    "$ref": "#/definitions/InsightPersonsQuery"
+                },
+                {
                     "$ref": "#/definitions/SessionsTimelineQuery"
                 },
                 {
@@ -102,7 +105,7 @@
                     "$ref": "#/definitions/HogQLMetadata"
                 },
                 {
-                    "$ref": "#/definitions/WebOverviewStatsQuery"
+                    "$ref": "#/definitions/WebOverviewQuery"
                 },
                 {
                     "$ref": "#/definitions/WebStatsTableQuery"
@@ -487,7 +490,7 @@
                             "$ref": "#/definitions/TimeToSeeDataSessionsQuery"
                         },
                         {
-                            "$ref": "#/definitions/WebOverviewStatsQuery"
+                            "$ref": "#/definitions/WebOverviewQuery"
                         },
                         {
                             "$ref": "#/definitions/WebStatsTableQuery"
@@ -1449,7 +1452,7 @@
             "additionalProperties": false,
             "properties": {
                 "end": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "fix": {
                     "type": "string"
@@ -1458,7 +1461,7 @@
                     "type": "string"
                 },
                 "start": {
-                    "type": "number"
+                    "type": "integer"
                 }
             },
             "required": ["message"],
@@ -1619,6 +1622,29 @@
                 "LifecycleQuery"
             ],
             "type": "string"
+        },
+        "InsightPersonsQuery": {
+            "additionalProperties": false,
+            "properties": {
+                "day": {
+                    "type": "string"
+                },
+                "kind": {
+                    "const": "InsightPersonsQuery",
+                    "type": "string"
+                },
+                "response": {
+                    "$ref": "#/definitions/PersonsQueryResponse"
+                },
+                "source": {
+                    "$ref": "#/definitions/InsightQueryNode"
+                },
+                "status": {
+                    "type": "string"
+                }
+            },
+            "required": ["kind", "source"],
+            "type": "object"
         },
         "InsightQueryNode": {
             "anyOf": [
@@ -1894,7 +1920,8 @@
                 "PathsQuery",
                 "StickinessQuery",
                 "LifecycleQuery",
-                "WebOverviewStatsQuery",
+                "InsightPersonsQuery",
+                "WebOverviewQuery",
                 "WebTopClicksQuery",
                 "WebStatsTableQuery",
                 "TimeToSeeDataSessionsQuery",
@@ -2146,7 +2173,7 @@
                 "source": {
                     "anyOf": [
                         {
-                            "$ref": "#/definitions/LifecycleQuery"
+                            "$ref": "#/definitions/InsightPersonsQuery"
                         },
                         {
                             "$ref": "#/definitions/HogQLQuery"
@@ -2625,11 +2652,11 @@
             "additionalProperties": false,
             "properties": {
                 "after": {
-                    "description": "Only fetch sessions that started after this timestamp",
+                    "description": "Only fetch sessions that started after this timestamp (default: '-24h')",
                     "type": "string"
                 },
                 "before": {
-                    "description": "Only fetch sessions that started before this timestamp",
+                    "description": "Only fetch sessions that started before this timestamp (default: '+5s')",
                     "type": "string"
                 },
                 "kind": {
@@ -2637,7 +2664,7 @@
                     "type": "string"
                 },
                 "personId": {
-                    "description": "Show sessions for a given person",
+                    "description": "Fetch sessions only for a given person",
                     "type": "string"
                 },
                 "response": {
@@ -2645,7 +2672,7 @@
                     "description": "Cached query response"
                 }
             },
-            "required": ["after", "before", "kind"],
+            "required": ["kind"],
             "type": "object"
         },
         "SessionsTimelineQueryResponse": {
@@ -3060,36 +3087,58 @@
                     "$ref": "#/definitions/WebAnalyticsPropertyFilters"
                 }
             },
-            "required": ["dateRange", "properties"],
+            "required": ["properties"],
             "type": "object"
         },
-        "WebOverviewStatsQuery": {
+        "WebOverviewItem": {
+            "additionalProperties": false,
+            "properties": {
+                "changeFromPreviousPct": {
+                    "type": "number"
+                },
+                "isIncreaseBad": {
+                    "type": "boolean"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "kind": {
+                    "enum": ["unit", "duration_s", "percentage"],
+                    "type": "string"
+                },
+                "previous": {
+                    "type": "number"
+                },
+                "value": {
+                    "type": "number"
+                }
+            },
+            "required": ["key", "kind"],
+            "type": "object"
+        },
+        "WebOverviewQuery": {
             "additionalProperties": false,
             "properties": {
                 "dateRange": {
                     "$ref": "#/definitions/DateRange"
                 },
                 "kind": {
-                    "const": "WebOverviewStatsQuery",
+                    "const": "WebOverviewQuery",
                     "type": "string"
                 },
                 "properties": {
                     "$ref": "#/definitions/WebAnalyticsPropertyFilters"
                 },
                 "response": {
-                    "$ref": "#/definitions/WebOverviewStatsQueryResponse"
+                    "$ref": "#/definitions/WebOverviewQueryResponse"
                 }
             },
-            "required": ["dateRange", "kind", "properties"],
+            "required": ["kind", "properties"],
             "type": "object"
         },
-        "WebOverviewStatsQueryResponse": {
+        "WebOverviewQueryResponse": {
             "additionalProperties": false,
             "properties": {
-                "columns": {
-                    "items": {},
-                    "type": "array"
-                },
                 "hogql": {
                     "type": "string"
                 },
@@ -3103,17 +3152,15 @@
                     "type": "string"
                 },
                 "results": {
-                    "items": {},
+                    "items": {
+                        "$ref": "#/definitions/WebOverviewItem"
+                    },
                     "type": "array"
                 },
                 "timings": {
                     "items": {
                         "$ref": "#/definitions/QueryTiming"
                     },
-                    "type": "array"
-                },
-                "types": {
-                    "items": {},
                     "type": "array"
                 }
             },
@@ -3127,9 +3174,15 @@
                 "InitialReferringDomain",
                 "InitialUTMSource",
                 "InitialUTMCampaign",
+                "InitialUTMMedium",
+                "InitialUTMTerm",
+                "InitialUTMContent",
                 "Browser",
                 "OS",
-                "DeviceType"
+                "DeviceType",
+                "Country",
+                "Region",
+                "City"
             ],
             "type": "string"
         },
@@ -3153,7 +3206,7 @@
                     "$ref": "#/definitions/WebStatsTableQueryResponse"
                 }
             },
-            "required": ["breakdownBy", "dateRange", "kind", "properties"],
+            "required": ["breakdownBy", "kind", "properties"],
             "type": "object"
         },
         "WebStatsTableQueryResponse": {
@@ -3210,7 +3263,7 @@
                     "$ref": "#/definitions/WebTopClicksQueryResponse"
                 }
             },
-            "required": ["dateRange", "kind", "properties"],
+            "required": ["kind", "properties"],
             "type": "object"
         },
         "WebTopClicksQueryResponse": {

@@ -166,7 +166,7 @@ export const NotebookNodeRecording = createPostHogWidgetNode<NotebookNodeRecordi
             return { id: match[1], noInspector: false, autoPlay: false }
         },
     },
-    settings: Settings,
+    Settings,
     serializedText: (attrs) => {
         return attrs.id
     },
