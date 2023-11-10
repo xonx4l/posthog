@@ -97,7 +97,9 @@ class TrendsQueryBuilder:
                     """
                     SELECT
                         0 AS total,
-                        ticks.day_start as day_start,
+                        """
+                    + ("ticks.day_start as day_start," if not self._trends_display.should_aggregate_values() else "")
+                    + """
                         breakdown_value
                     FROM (
                         SELECT
@@ -116,8 +118,8 @@ class TrendsQueryBuilder:
                         )
                         ARRAY JOIN breakdown_value as breakdown_value
                     ) as sec
-                    ORDER BY breakdown_value, day_start
-                """,
+                    ORDER BY breakdown_value"""
+                    + (", day_start" if not self._trends_display.should_aggregate_values() else ""),
                     placeholders={
                         **self.query_date_range.to_placeholders(),
                         **self._breakdown.placeholders(),
@@ -137,16 +139,16 @@ class TrendsQueryBuilder:
         default_query = cast(
             ast.SelectQuery,
             parse_select(
-                """
-                SELECT
-                    {aggregation_operation} AS total,
-                    {day_start}
-                FROM events AS e
-                SAMPLE {sample}
-                WHERE {events_filter}
-                GROUP BY day_start
-            """,
+                "SELECT {aggregation_operation} AS total"
+                + (", {day_start}" if not self._trends_display.should_aggregate_values() else "")
+                + """
+                    FROM events AS e
+                    SAMPLE {sample}
+                    WHERE {events_filter}
+                    """
+                + ("GROUP BY day_start" if not self._trends_display.should_aggregate_values() else ""),
                 placeholders={
+                    **self.query_date_range.to_placeholders(),
                     "events_filter": self._events_filter(),
                     "aggregation_operation": self._aggregation_operation.select_aggregation(),
                     "sample": self._sample_value(),
@@ -179,6 +181,8 @@ class TrendsQueryBuilder:
         # Just breakdowns
         elif self._breakdown.enabled:
             default_query.select.append(self._breakdown.column_expr())
+            if default_query.group_by is None:
+                default_query.group_by = []
             default_query.group_by.append(ast.Field(chain=["breakdown_value"]))
 
         # Just complex series aggregation
@@ -194,12 +198,9 @@ class TrendsQueryBuilder:
         query = cast(
             ast.SelectQuery,
             parse_select(
-                """
-                SELECT
-                    groupArray(day_start) AS date,
-                    groupArray(count) AS total
-                FROM {inner_query}
-            """,
+                "SELECT "
+                + ("groupArray(day_start) AS date," if not self._trends_display.should_aggregate_values() else "")
+                + "groupArray(count) AS total FROM {inner_query}",
                 placeholders={"inner_query": inner_query},
             ),
         )
@@ -217,19 +218,22 @@ class TrendsQueryBuilder:
         query = cast(
             ast.SelectQuery,
             parse_select(
-                """
-                SELECT
-                    sum(total) AS count,
-                    day_start
-                FROM {inner_query}
-                GROUP BY day_start
-                ORDER BY day_start ASC
-            """,
+                "SELECT sum(total) AS count "
+                + (",day_start" if not self._trends_display.should_aggregate_values() else "")
+                + "FROM {inner_query} "
+                + (
+                    "GROUP BY day_start ORDER BY day_start ASC"
+                    if not self._trends_display.should_aggregate_values()
+                    else ""
+                ),
                 placeholders={"inner_query": inner_query},
             ),
         )
 
         if self._breakdown.enabled:
+            if self._trends_display.should_aggregate_values():
+                query.group_by = []
+                query.order_by = []
             query.select.append(ast.Field(chain=["breakdown_value"]))
             query.group_by.append(ast.Field(chain=["breakdown_value"]))
             query.order_by.append(ast.OrderExpr(expr=ast.Field(chain=["breakdown_value"]), order="ASC"))
