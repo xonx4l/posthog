@@ -228,8 +228,7 @@
             }
         }
 
-        &:not([aria-disabled='true']):hover,
-        &.LemonButton--active:not(.LemonButton--tertiary) {
+        &:not([aria-disabled='true']):hover {
             background: rgba(0, 0, 0, 0.1);
         }
     }
