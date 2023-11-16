@@ -55,10 +55,6 @@ export class LazyPluginVM {
         this.initVm()
     }
 
-    public async getExportEvents(): Promise<PluginConfigVMResponse['methods']['exportEvents'] | null> {
-        return await this.getVmMethod('exportEvents')
-    }
-
     public async getOnEvent(): Promise<PluginConfigVMResponse['methods']['onEvent'] | null> {
         return await this.getVmMethod('onEvent')
     }

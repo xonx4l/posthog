@@ -100,7 +100,7 @@ describe('capabilities', () => {
                 const shouldSetupPlugin = shouldSetupPluginInServer(
                     { ingestion: true },
                     {
-                        methods: ['onEvent', 'exportEvents'],
+                        methods: ['onEvent'],
                         scheduled_tasks: ['runEveryMinute'],
                         jobs: ['someJob'],
                     }
@@ -122,7 +122,7 @@ describe('capabilities', () => {
                 const shouldSetupPlugin = shouldSetupPluginInServer(
                     { ingestionOverflow: true },
                     {
-                        methods: ['onEvent', 'exportEvents'],
+                        methods: ['onEvent'],
                         scheduled_tasks: ['runEveryMinute'],
                         jobs: ['someJob'],
                     }
@@ -144,7 +144,7 @@ describe('capabilities', () => {
                 const shouldSetupPlugin = shouldSetupPluginInServer(
                     { ingestionHistorical: true },
                     {
-                        methods: ['onEvent', 'exportEvents'],
+                        methods: ['onEvent'],
                         scheduled_tasks: ['runEveryMinute'],
                         jobs: ['someJob'],
                     }
@@ -184,7 +184,7 @@ describe('capabilities', () => {
         })
 
         describe('processAsyncOnEventHandlers', () => {
-            it.each(['onEvent', 'exportEvents'])(
+            it.each(['onEvent'])(
                 'returns true if plugin has %s and the server has processAsyncOnEventHandlers capability',
                 (method) => {
                     const shouldSetupPlugin = shouldSetupPluginInServer(
@@ -195,7 +195,7 @@ describe('capabilities', () => {
                 }
             )
 
-            it('returns false if plugin has none of onEvent or exportEvents and the server has only processAsyncOnEventHandlers capability', () => {
+            it('returns false if plugin has none of onEvent and the server has only processAsyncOnEventHandlers capability', () => {
                 const shouldSetupPlugin = shouldSetupPluginInServer(
                     { processAsyncOnEventHandlers: true },
                     { methods: [] }
@@ -203,18 +203,15 @@ describe('capabilities', () => {
                 expect(shouldSetupPlugin).toEqual(false)
             })
 
-            it.each(['onEvent', 'exportEvents'])(
-                'returns true if plugin has %s and the server has processAsyncOnEventHandlers capability',
-                (method) => {
-                    const shouldSetupPlugin = shouldSetupPluginInServer(
-                        { processAsyncOnEventHandlers: true },
-                        { methods: [method] }
-                    )
-                    expect(shouldSetupPlugin).toEqual(true)
-                }
-            )
+            it('onEvent returns true if plugin has %s and the server has processAsyncOnEventHandlers capability', (method) => {
+                const shouldSetupPlugin = shouldSetupPluginInServer(
+                    { processAsyncOnEventHandlers: true },
+                    { methods: [method] }
+                )
+                expect(shouldSetupPlugin).toEqual(true)
+            })
 
-            it('returns false if plugin has none of onEvent or exportEvents and the server has only processAsyncOnEventHandlers capability', () => {
+            it('returns false if plugin has none of onEvent and the server has only processAsyncOnEventHandlers capability', () => {
                 const shouldSetupPlugin = shouldSetupPluginInServer(
                     { processAsyncOnEventHandlers: true },
                     { methods: [] }
