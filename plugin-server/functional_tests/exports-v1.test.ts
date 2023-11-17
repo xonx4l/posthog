@@ -69,8 +69,8 @@ test.concurrent(`exports: exporting events on ingestion`, async () => {
     // Then check that the onEvent function was called
     await waitForExpect(
         () => {
-            const onEvent = webHookCalledWith[`/${teamId}`]
-            expect(onEvent).toEqual(
+            const onEvents = webHookCalledWith[`/${teamId}`]
+            expect(onEvents).toEqual([
                 expect.objectContaining({
                     distinct_id: distinctId,
                     team_id: teamId,
@@ -82,8 +82,8 @@ test.concurrent(`exports: exporting events on ingestion`, async () => {
                     timestamp: expect.any(String),
                     uuid: uuid,
                     elements: [],
-                })
-            )
+                }),
+            ])
         },
         60_000,
         1_000
@@ -127,8 +127,8 @@ test.concurrent(`exports: exporting $autocapture events on ingestion`, async () 
     // Then check that the onEvent function was called
     await waitForExpect(
         () => {
-            const onEvent = webHookCalledWith[`/${teamId}`]
-            expect(onEvent).toEqual(
+            const onEvents = webHookCalledWith[`/${teamId}`]
+            expect(onEvents).toEqual([
                 expect.objectContaining({
                     distinct_id: distinctId,
                     team_id: teamId,
@@ -150,8 +150,8 @@ test.concurrent(`exports: exporting $autocapture events on ingestion`, async () 
                             attributes: {},
                         },
                     ],
-                })
-            )
+                }),
+            ])
         },
         60_000,
         1_000
