@@ -120,7 +120,7 @@ test.concurrent(`exports: exporting $autocapture events on ingestion`, async () 
         properties: {
             name: 'hehe',
             uuid: new UUIDT().toString(),
-            $elements: [{ tag_name: 'div', nth_child: 1, nth_of_type: 2, $el_text: '💻' }],
+            $elements_chain: 'elements_chain',
         },
     })
 
@@ -136,20 +136,10 @@ test.concurrent(`exports: exporting $autocapture events on ingestion`, async () 
                     properties: expect.objectContaining({
                         name: 'hehe',
                         uuid: uuid,
+                        $elements_chain: 'elements_chain',
                     }),
                     timestamp: expect.any(String),
                     uuid: uuid,
-                    elements: [
-                        {
-                            tag_name: 'div',
-                            nth_child: 1,
-                            nth_of_type: 2,
-                            order: 0,
-                            $el_text: '💻',
-                            text: '💻',
-                            attributes: {},
-                        },
-                    ],
                 }),
             ])
         },
