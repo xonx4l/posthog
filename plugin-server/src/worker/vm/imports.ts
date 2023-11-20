@@ -1,7 +1,6 @@
 import * as bigquery from '@google-cloud/bigquery'
 import * as pubsub from '@google-cloud/pubsub'
 import * as gcs from '@google-cloud/storage'
-import * as contrib from '@posthog/plugin-contrib'
 import * as scaffold from '@posthog/plugin-scaffold'
 import * as AWS from 'aws-sdk'
 import crypto from 'crypto'
@@ -28,7 +27,6 @@ export const AVAILABLE_IMPORTS = {
     '@google-cloud/bigquery': bigquery,
     '@google-cloud/pubsub': pubsub,
     '@google-cloud/storage': gcs,
-    '@posthog/plugin-contrib': contrib,
     '@posthog/plugin-scaffold': scaffold,
     'aws-sdk': AWS,
     ethers: ethers,
