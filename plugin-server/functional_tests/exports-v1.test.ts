@@ -98,11 +98,12 @@ test.concurrent(`exports: exporting $autocapture events on ingestion`, async () 
         plugin_type: 'source',
         is_global: false,
         source__index_ts: `
-            export const onEvent = async (event, { global, config }) => {
-                await fetch(
-                    "http://localhost:${server.address()?.port}/${teamId}", 
-                    {method: "POST", body: JSON.stringify(event)}
-                )
+            export const composeWebhook(event, { global, config }) => {
+                return {
+                    url: \`http://localhost:${server.address()?.port}/${teamId}\`,
+                    method: "POST",
+                    body: JSON.stringify(event),
+                }
             }
         `,
     })
