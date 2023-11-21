@@ -14,6 +14,7 @@
     background: var(--accent-3000);
     color: var(--default);
     text-transform: capitalize;
+    user-select: none;
 
     .posthog-3000 & {
         text-transform: uppercase;
@@ -21,10 +22,6 @@
         border-bottom-width: 2px;
         font-size: 0.625rem;
         padding: 0.125rem 0.25rem;
-    }
-
-    .posthog-3000[theme='dark'] & {
-        border-color: var(--muted-3000);
     }
 
     .KeyboardShortcut--muted > & {
