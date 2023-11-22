@@ -28,7 +28,7 @@ import {
 import type { webAnalyticsLogicType } from './webAnalyticsLogicType'
 
 export interface WebTileLayout {
-    colSpan?: number
+    colSpan?: number | 'full'
     rowSpan?: number
     className?: string
 }
@@ -247,7 +247,7 @@ export const webAnalyticsLogic = kea<webAnalyticsLogicType>([
                 const tiles: (WebDashboardTile | null)[] = [
                     {
                         layout: {
-                            colSpan: 12,
+                            colSpan: 'full',
                         },
                         query: {
                             kind: NodeKind.WebOverviewQuery,
@@ -257,7 +257,7 @@ export const webAnalyticsLogic = kea<webAnalyticsLogicType>([
                     },
                     {
                         layout: {
-                            colSpan: 6,
+                            colSpan: 1,
                         },
                         activeTabId: graphsTab,
                         setTabId: actions.setGraphsTab,
@@ -351,7 +351,7 @@ export const webAnalyticsLogic = kea<webAnalyticsLogicType>([
                     },
                     {
                         layout: {
-                            colSpan: 6,
+                            colSpan: 1,
                         },
                         activeTabId: pathTab,
                         setTabId: actions.setPathTab,
@@ -390,7 +390,7 @@ export const webAnalyticsLogic = kea<webAnalyticsLogicType>([
                     },
                     {
                         layout: {
-                            colSpan: 6,
+                            colSpan: 1,
                         },
                         activeTabId: sourceTab,
                         setTabId: actions.setSourceTab,
@@ -444,15 +444,15 @@ export const webAnalyticsLogic = kea<webAnalyticsLogicType>([
                     },
                     {
                         layout: {
-                            colSpan: 6,
+                            colSpan: 1,
                         },
                         activeTabId: deviceTab,
                         setTabId: actions.setDeviceTab,
                         tabs: [
                             {
                                 id: DeviceTab.DEVICE_TYPE,
-                                title: 'Top Device Types',
-                                linkText: 'Device Type',
+                                title: 'Device types',
+                                linkText: 'Device type',
                                 query: {
                                     kind: NodeKind.InsightVizNode,
                                     source: {
@@ -517,7 +517,7 @@ export const webAnalyticsLogic = kea<webAnalyticsLogicType>([
                     {
                         title: 'Retention',
                         layout: {
-                            colSpan: 12,
+                            colSpan: 2,
                         },
                         query: {
                             kind: NodeKind.InsightVizNode,
@@ -545,7 +545,7 @@ export const webAnalyticsLogic = kea<webAnalyticsLogicType>([
                     shouldShowGeographyTile
                         ? {
                               layout: {
-                                  colSpan: 12,
+                                  colSpan: 2,
                               },
                               activeTabId: geographyTab,
                               setTabId: actions.setGeographyTab,
