@@ -503,7 +503,7 @@ export const BillingProduct = ({ product }: { product: BillingProductV2Type }): 
                             {product.tiered && tableTierData ? (
                                 <>
                                     <LemonTable
-                                        borderless
+                                        stealth
                                         embedded
                                         size="xs"
                                         uppercaseHeader={false}
@@ -526,7 +526,7 @@ export const BillingProduct = ({ product }: { product: BillingProductV2Type }): 
                                 </>
                             ) : (
                                 <LemonTable
-                                    borderless
+                                    stealth
                                     embedded
                                     size="xs"
                                     uppercaseHeader={false}

@@ -52,8 +52,8 @@ export interface LemonTableProps<T extends Record<string, any>> {
     inset?: boolean
     /** An embedded table has no border around it and no background. This way it blends better into other components. */
     embedded?: boolean
-    /** Whether table borders should be shown. **/
-    borderless?: boolean
+    /** Whether a table background and inner borders should be shown. **/
+    stealth?: boolean
     loading?: boolean
     pagination?: PaginationAuto | PaginationManual
     expandable?: ExpandableConfig<T>
@@ -100,7 +100,7 @@ export function LemonTable<T extends Record<string, any>>({
     size,
     inset = false,
     embedded = false,
-    borderless = false,
+    stealth = false,
     loading,
     pagination,
     expandable,
@@ -220,8 +220,7 @@ export function LemonTable<T extends Record<string, any>>({
                 loading && 'LemonTable--loading',
                 embedded && 'LemonTable--embedded',
                 rowRibbonColor !== undefined && `LemonTable--with-ribbon`,
-                borderless && 'LemonTable--borderless',
-                // display === 'stealth' && 'LemonTable--stealth',
+                stealth && 'LemonTable--stealth',
                 isScrollableLeft && 'scrollable--left',
                 isScrollableRight && 'scrollable--right',
                 className
