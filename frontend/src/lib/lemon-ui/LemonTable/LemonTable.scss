@@ -258,7 +258,9 @@
     cursor: default;
 
     .posthog-3000 & {
-        opacity: 0.4;
+        .LemonTable__header-content {
+            opacity: 0.4;
+        }
     }
 
     &.LemonTable__header--actionable {
@@ -266,11 +268,15 @@
 
         .posthog-3000 & {
             &:hover {
-                opacity: 0.7;
+                .LemonTable__header-content {
+                    opacity: 0.7;
+                }
             }
 
             &:active {
-                opacity: 0.9;
+                .LemonTable__header-content {
+                    opacity: 0.9;
+                }
             }
         }
     }
@@ -319,7 +325,7 @@ body:not(.storybook-test-runner) {
     }
 
     .LemonTable__cell--sticky::before {
-        background: var(--bg-light);
+        background: var(--bg-table);
     }
 
     tr.LemonTable__row--status-highlighted .LemonTable__cell--sticky::before {
@@ -327,7 +333,7 @@ body:not(.storybook-test-runner) {
     }
 
     .LemonTable__header--sticky::before {
-        background: var(--mid);
+        background: var(--bg-table);
     }
 
     .scrollable--left {
