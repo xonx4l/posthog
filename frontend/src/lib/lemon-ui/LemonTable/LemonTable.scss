@@ -54,22 +54,29 @@
         background: none;
     }
 
-    &--borderless-rows {
+    &--borderless {
+        border: none;
+        border-radius: 0;
+
+        .LemonTable__content > table > thead {
+            border-bottom: none;
+        }
+
         tr {
             border: none !important;
         }
     }
 
-    &--stealth {
-        border: none;
-        border-radius: 0;
-        background: none;
+    // &--stealth {
+    //     border: none;
+    //     border-radius: 0;
+    //     background: none;
 
-        .LemonTable__content > table > thead {
-            background: none;
-            border: none;
-        }
-    }
+    //     .LemonTable__content > table > thead {
+    //         background: none;
+    //         border: none;
+    //     }
+    // }
 
     &.LemonTable--inset {
         --row-horizontal-padding: 0.5rem;
@@ -125,6 +132,13 @@
         .posthog-3000 & {
             background: none;
         }
+
+        // .posthog-3000 & {
+
+        //     > thead {
+        //         background: var(--bg-light);
+        //     }
+        // }
 
         > tr {
             > th {

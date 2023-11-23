@@ -182,8 +182,8 @@ XSmall.args = { size: 'xs' }
 export const Embedded: Story = BasicTemplate.bind({})
 Embedded.args = { embedded: true }
 
-export const BorderlessRows: Story = BasicTemplate.bind({})
-BorderlessRows.args = { borderedRows: false }
+export const Borderless: Story = BasicTemplate.bind({})
+Borderless.args = { borderless: true }
 
 export const Loading: Story = BasicTemplate.bind({})
 Loading.args = { loading: true }
