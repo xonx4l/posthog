@@ -15,7 +15,20 @@ export interface PersonOverrideWriter {
         oldPerson: Person,
         overridePerson: Person,
         tx: TransactionClient
-    ): Promise<ProducerRecord | null>
+    ): Promise<ProducerRecord | null> // TODO: should always return Promise<void> when done refactoring
+}
+
+export class DeferredPersonOverrideWriter implements PersonOverrideWriter {
+    constructor(private db: DB) {}
+
+    public async addPersonOverride(
+        teamId: number,
+        oldPerson: Person,
+        overridePerson: Person,
+        tx: TransactionClient
+    ): Promise<null> {
+        throw new Error("todo: write to merge log")
+    }
 }
 
 export class ImmediatePersonOverrideWriter implements PersonOverrideWriter {
@@ -26,7 +39,8 @@ export class ImmediatePersonOverrideWriter implements PersonOverrideWriter {
         oldPerson: Person,
         overridePerson: Person,
         tx: TransactionClient
-    ): Promise<ProducerRecord | null> {
+    ): Promise<ProducerRecord> {
+        // TODO: this should handle kafka produce internally and not return it
         const mergedAt = DateTime.now()
         const oldestEvent = overridePerson.created_at
         /**

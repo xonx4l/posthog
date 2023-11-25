@@ -520,6 +520,8 @@ export class PersonState {
                 ]
 
                 if (this.poEEmbraceJoin) {
+                    // TODO: Move all tests that depend on this block to instead
+                    // test the implementation of the override writer.
                     const overrideWriter: PersonOverrideWriter = new ImmediatePersonOverrideWriter(this.db)
                     const overrideMessage = await overrideWriter.addPersonOverride(
                         this.teamId,
