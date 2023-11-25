@@ -9,32 +9,41 @@ import { status } from '../../utils/status'
 import { castTimestampOrNow } from '../../utils/utils'
 import { SQL } from './person-state'
 
+type PersonOverride = {
+    teamId: number
+    oldPersonUuid: string
+    overridePersonUuid: string
+    oldestEvent: DateTime // TODO: is this something that should be in the log table, or resolved at merge time?e
+}
+
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- work in progress */
 
 export class DeferredPersonOverrideWriter {
     constructor(private db: DB) {}
 
     public async addPersonOverride(
+        tx: TransactionClient,
         teamId: number,
         oldPerson: Person,
-        overridePerson: Person,
-        tx: TransactionClient
+        overridePerson: Person
     ): Promise<void> {
+        // TODO: validate both persons have the expected teamId
+        const record: PersonOverride = {
+            teamId,
+            oldPersonUuid: oldPerson.uuid,
+            overridePersonUuid: overridePerson.uuid,
+            oldestEvent: overridePerson.created_at,
+        }
     }
 }
 
-class PersonOverrideWriter {
+/* eslint-enable */
+
+class _PersonOverrideWriter {
     constructor(private db: DB) {}
 
-    public async addPersonOverride(
-        teamId: number,
-        oldPerson: Person,
-        overridePerson: Person,
-        tx: TransactionClient
-    ): Promise<ProducerRecord> {
-        // TODO: this should handle kafka produce internally and not return it
+    public async addPersonOverride(tx: TransactionClient, record: PersonOverride): Promise<ProducerRecord> {
         const mergedAt = DateTime.now()
-        const oldestEvent = overridePerson.created_at
         /**
             We'll need to do 4 updates:
 
@@ -42,8 +51,12 @@ class PersonOverrideWriter {
          2. Add an override from oldPerson to override person
          3. Update any entries that have oldPerson as the override person to now also point to the new override person. Note that we don't update `oldest_event`, because it's a heuristic (used to optimise squashing) tied to the old_person and nothing changed about the old_person who's events need to get squashed.
          */
-        const oldPersonId = await this.addPersonOverrideMapping(teamId, oldPerson, tx)
-        const overridePersonId = await this.addPersonOverrideMapping(teamId, overridePerson, tx)
+        const oldPersonMappingId = await this.addPersonOverrideMapping(tx, record.teamId, record.oldPersonUuid)
+        const overridePersonMappingId = await this.addPersonOverrideMapping(
+            tx,
+            record.teamId,
+            record.overridePersonUuid
+        )
 
         await this.db.postgres.query(
             tx,
@@ -55,10 +68,10 @@ class PersonOverrideWriter {
                     oldest_event,
                     version
                 ) VALUES (
-                    ${teamId},
-                    ${oldPersonId},
-                    ${overridePersonId},
-                    ${oldestEvent},
+                    ${record.teamId},
+                    ${oldPersonMappingId},
+                    ${overridePersonMappingId},
+                    ${record.oldestEvent},
                     0
                 )
             `,
@@ -75,9 +88,9 @@ class PersonOverrideWriter {
                     UPDATE
                         posthog_personoverride
                     SET
-                        override_person_id = ${overridePersonId}, version = COALESCE(version, 0)::numeric + 1
+                        override_person_id = ${overridePersonMappingId}, version = COALESCE(version, 0)::numeric + 1
                     WHERE
-                        team_id = ${teamId} AND override_person_id = ${oldPersonId}
+                        team_id = ${record.teamId} AND override_person_id = ${oldPersonMappingId}
                     RETURNING
                         old_person_id,
                         version,
@@ -105,19 +118,19 @@ class PersonOverrideWriter {
             messages: [
                 {
                     value: JSON.stringify({
-                        team_id: oldPerson.team_id,
+                        team_id: record.teamId,
                         merged_at: castTimestampOrNow(mergedAt, TimestampFormat.ClickHouse),
-                        override_person_id: overridePerson.uuid,
-                        old_person_id: oldPerson.uuid,
-                        oldest_event: castTimestampOrNow(oldestEvent, TimestampFormat.ClickHouse),
+                        override_person_id: record.overridePersonUuid,
+                        old_person_id: record.oldPersonUuid,
+                        oldest_event: castTimestampOrNow(record.oldestEvent, TimestampFormat.ClickHouse),
                         version: 0,
                     }),
                 },
                 ...transitiveUpdates.map(({ old_person_id, version, oldest_event }) => ({
                     value: JSON.stringify({
-                        team_id: oldPerson.team_id,
+                        team_id: record.teamId,
                         merged_at: castTimestampOrNow(mergedAt, TimestampFormat.ClickHouse),
-                        override_person_id: overridePerson.uuid,
+                        override_person_id: record.overridePersonUuid,
                         old_person_id: old_person_id,
                         oldest_event: castTimestampOrNow(oldest_event, TimestampFormat.ClickHouse),
                         version: version,
@@ -129,7 +142,7 @@ class PersonOverrideWriter {
         return personOverrideMessages
     }
 
-    private async addPersonOverrideMapping(teamId: number, person: Person, tx: TransactionClient): Promise<number> {
+    private async addPersonOverrideMapping(tx: TransactionClient, teamId: number, personUuid: string): Promise<number> {
         /**
             Update the helper table that serves as a mapping between a serial ID and a Person UUID.
 
@@ -151,7 +164,7 @@ class PersonOverrideWriter {
                     )
                     VALUES (
                         ${teamId},
-                        '${person.uuid}'
+                        '${personUuid}'
                     )
                     ON CONFLICT("team_id", "uuid") DO NOTHING
                     RETURNING id
@@ -160,7 +173,7 @@ class PersonOverrideWriter {
                 UNION ALL
                 SELECT id
                 FROM posthog_personoverridemapping
-                WHERE uuid = '${person.uuid}'
+                WHERE uuid = '${personUuid}'
             `,
             undefined,
             'personOverrideMapping'
@@ -169,5 +182,3 @@ class PersonOverrideWriter {
         return id
     }
 }
-
-/* eslint-enable */
