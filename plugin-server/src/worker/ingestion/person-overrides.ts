@@ -27,7 +27,7 @@ export class DeferredPersonOverrideWriter implements PersonOverrideWriter {
         overridePerson: Person,
         tx: TransactionClient
     ): Promise<null> {
-        throw new Error("todo: write to merge log")
+        return null
     }
 }
 

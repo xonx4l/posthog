@@ -12,7 +12,7 @@ import { timeoutGuard } from '../../utils/db/utils'
 import { promiseRetry } from '../../utils/retries'
 import { status } from '../../utils/status'
 import { UUIDT } from '../../utils/utils'
-import { ImmediatePersonOverrideWriter, PersonOverrideWriter } from './person-overrides'
+import { DeferredPersonOverrideWriter, PersonOverrideWriter } from './person-overrides'
 import { captureIngestionWarning } from './utils'
 
 const MAX_FAILED_PERSON_MERGE_ATTEMPTS = 3
@@ -522,7 +522,7 @@ export class PersonState {
                 if (this.poEEmbraceJoin) {
                     // TODO: Move all tests that depend on this block to instead
                     // test the implementation of the override writer.
-                    const overrideWriter: PersonOverrideWriter = new ImmediatePersonOverrideWriter(this.db)
+                    const overrideWriter: PersonOverrideWriter = new DeferredPersonOverrideWriter(this.db)
                     const overrideMessage = await overrideWriter.addPersonOverride(
                         this.teamId,
                         otherPerson,
