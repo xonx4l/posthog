@@ -9,16 +9,9 @@ import { status } from '../../utils/status'
 import { castTimestampOrNow } from '../../utils/utils'
 import { SQL } from './person-state'
 
-export interface PersonOverrideWriter {
-    addPersonOverride(
-        teamId: number,
-        oldPerson: Person,
-        overridePerson: Person,
-        tx: TransactionClient
-    ): Promise<ProducerRecord | null> // TODO: should always return Promise<void> when done refactoring
-}
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- work in progress */
 
-export class DeferredPersonOverrideWriter implements PersonOverrideWriter {
+export class DeferredPersonOverrideWriter {
     constructor(private db: DB) {}
 
     public async addPersonOverride(
@@ -26,12 +19,12 @@ export class DeferredPersonOverrideWriter implements PersonOverrideWriter {
         oldPerson: Person,
         overridePerson: Person,
         tx: TransactionClient
-    ): Promise<null> {
-        return null
+    ): Promise<void> {
+        throw new Error() // TODO
     }
 }
 
-export class ImmediatePersonOverrideWriter implements PersonOverrideWriter {
+class PersonOverrideWriter {
     constructor(private db: DB) {}
 
     public async addPersonOverride(
@@ -177,3 +170,5 @@ export class ImmediatePersonOverrideWriter implements PersonOverrideWriter {
         return id
     }
 }
+
+/* eslint-enable */

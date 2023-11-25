@@ -12,7 +12,7 @@ import { timeoutGuard } from '../../utils/db/utils'
 import { promiseRetry } from '../../utils/retries'
 import { status } from '../../utils/status'
 import { UUIDT } from '../../utils/utils'
-import { DeferredPersonOverrideWriter, PersonOverrideWriter } from './person-overrides'
+import { DeferredPersonOverrideWriter } from './person-overrides'
 import { captureIngestionWarning } from './utils'
 
 const MAX_FAILED_PERSON_MERGE_ATTEMPTS = 3
@@ -513,28 +513,23 @@ export class PersonState {
                     tx
                 )
 
-                const kafkaMessages = [
-                    ...updatePersonMessages,
-                    ...(await this.db.moveDistinctIds(otherPerson, mergeInto, tx)),
-                    ...(await this.db.deletePerson(otherPerson, tx)),
-                ]
-
                 if (this.poEEmbraceJoin) {
-                    // TODO: Move all tests that depend on this block to instead
-                    // test the implementation of the override writer.
-                    const overrideWriter: PersonOverrideWriter = new DeferredPersonOverrideWriter(this.db)
-                    const overrideMessage = await overrideWriter.addPersonOverride(
+                    await new DeferredPersonOverrideWriter(this.db).addPersonOverride(
                         this.teamId,
                         otherPerson,
                         mergeInto,
                         tx
                     )
-                    if (overrideMessage !== null) {
-                        kafkaMessages.push(overrideMessage)
-                    }
                 }
 
-                return [kafkaMessages, person]
+                return [
+                    [
+                        ...updatePersonMessages,
+                        ...(await this.db.moveDistinctIds(otherPerson, mergeInto, tx)),
+                        ...(await this.db.deletePerson(otherPerson, tx)),
+                    ],
+                    person,
+                ]
             }
         )
 
