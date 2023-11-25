@@ -9,7 +9,16 @@ import { status } from '../../utils/status'
 import { castTimestampOrNow } from '../../utils/utils'
 import { SQL } from './person-state'
 
-export class PersonOverrideWriter {
+export interface PersonOverrideWriter {
+    addPersonOverride(
+        teamId: number,
+        oldPerson: Person,
+        overridePerson: Person,
+        tx: TransactionClient
+    ): Promise<ProducerRecord | null>
+}
+
+export class ImmediatePersonOverrideWriter implements PersonOverrideWriter {
     constructor(private db: DB) {}
 
     public async addPersonOverride(
