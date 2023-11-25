@@ -1560,6 +1560,7 @@ describe('PersonState.update()', () => {
 
                 // verify Postgres person_id overrides
                 if (poEEmbraceJoin) {
+                    // TODO: Run the override worker, make sure it did the thing.
                     const overrides = await fetchPersonIdOverrides()
                     expect(overrides).toEqual([[second.uuid, first.uuid]])
                     // & CH person overrides
@@ -1723,6 +1724,10 @@ describe('PersonState.update()', () => {
             })
 
             it(`does not commit partial transactions on override conflicts`, async () => {
+                // TODO: This test can probably be removed -- we won't be able
+                // to enforce this constraint with the asynchronous override
+                // approach as we're splitting the big transaction into two
+                // separate transactions.
                 if (!poEEmbraceJoin) {
                     return // this is only a PoE test
                 }
@@ -1986,6 +1991,7 @@ describe('PersonState.update()', () => {
                 expect(distinctIds).toEqual(expect.arrayContaining(['first', 'second', 'third']))
 
                 if (poEEmbraceJoin) {
+                    // TODO: Run the override worker, make sure it did the thing.
                     // verify Postgres person_id overrides
                     const overrides = await fetchPersonIdOverrides()
                     expect(overrides).toEqual([
@@ -2074,6 +2080,7 @@ describe('PersonState.update()', () => {
 
                 if (poEEmbraceJoin) {
                     // verify Postgres person_id overrides
+                    // TODO: Run the override worker, make sure it did the thing.
                     const overrides = await fetchPersonIdOverrides()
                     expect(overrides).toEqual([
                         [second.uuid, first.uuid],
