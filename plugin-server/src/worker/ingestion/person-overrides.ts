@@ -20,7 +20,6 @@ export class DeferredPersonOverrideWriter {
         overridePerson: Person,
         tx: TransactionClient
     ): Promise<void> {
-        throw new Error() // TODO
     }
 }
 
