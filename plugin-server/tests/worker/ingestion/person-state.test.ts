@@ -7,6 +7,7 @@ import { createHub } from '../../../src/utils/db/hub'
 import { PostgresUse } from '../../../src/utils/db/postgres'
 import { defaultRetryConfig } from '../../../src/utils/retries'
 import { UUIDT } from '../../../src/utils/utils'
+import { PersonOverrideWorker } from '../../../src/worker/ingestion/person-overrides'
 import { ageInMonthsLowCardinality, PersonState } from '../../../src/worker/ingestion/person-state'
 import { delayUntilEventIngested } from '../../helpers/clickhouse'
 import { createOrganization, createTeam, fetchPostgresPersons, insertRow } from '../../helpers/sql'
@@ -1560,7 +1561,9 @@ describe('PersonState.update()', () => {
 
                 // verify Postgres person_id overrides
                 if (poEEmbraceJoin) {
-                    // TODO: Run the override worker, make sure it did the thing.
+                    // run the override worker to settle all pending overrides
+                    await new PersonOverrideWorker(hub.db).handleBatch()
+
                     const overrides = await fetchPersonIdOverrides()
                     expect(overrides).toEqual([[second.uuid, first.uuid]])
                     // & CH person overrides
@@ -1991,7 +1994,9 @@ describe('PersonState.update()', () => {
                 expect(distinctIds).toEqual(expect.arrayContaining(['first', 'second', 'third']))
 
                 if (poEEmbraceJoin) {
-                    // TODO: Run the override worker, make sure it did the thing.
+                    // run the override worker to settle all pending overrides
+                    await new PersonOverrideWorker(hub.db).handleBatch()
+
                     // verify Postgres person_id overrides
                     const overrides = await fetchPersonIdOverrides()
                     expect(overrides).toEqual([
@@ -2079,8 +2084,10 @@ describe('PersonState.update()', () => {
                 expect(distinctIds).toEqual(expect.arrayContaining(['first', 'second', 'third']))
 
                 if (poEEmbraceJoin) {
+                    // run the override worker to settle all pending overrides
+                    await new PersonOverrideWorker(hub.db).handleBatch()
+
                     // verify Postgres person_id overrides
-                    // TODO: Run the override worker, make sure it did the thing.
                     const overrides = await fetchPersonIdOverrides()
                     expect(overrides).toEqual([
                         [second.uuid, first.uuid],

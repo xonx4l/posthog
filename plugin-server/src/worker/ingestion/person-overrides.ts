@@ -3,7 +3,7 @@ import { DateTime } from 'luxon'
 import { KAFKA_PERSON_OVERRIDE } from '../../config/kafka-topics'
 import { Person, TimestampFormat } from '../../types'
 import { DB } from '../../utils/db/db'
-import { TransactionClient } from '../../utils/db/postgres'
+import { PostgresUse, TransactionClient } from '../../utils/db/postgres'
 import { status } from '../../utils/status'
 import { castTimestampOrNow } from '../../utils/utils'
 import { SQL } from './person-state'
@@ -32,11 +32,28 @@ export class DeferredPersonOverrideWriter {
             oldestEvent: overridePerson.created_at,
         }
         // TODO: cheating for now to see what happens in tests, this should write to the new table
-        await new _PersonOverrideWriter(this.db).addPersonOverride(tx, record)
+        // TODO: no idea if i'm using this client correctly, need to be careful here
+        await this.db.postgres.query(
+            tx,
+            SQL`
+            INSERT INTO posthog_pendingpersonoverrides (
+                team_id,
+                old_person_id,
+                override_person_id,
+                oldest_event
+            ) VALUES (
+                ${record.teamId},
+                ${record.oldPersonUuid},
+                ${record.overridePersonUuid},
+                ${record.oldestEvent}
+            )`,
+            undefined,
+            'pendingPersonOverride'
+        )
     }
 }
 
-class _PersonOverrideWriter {
+class PersonOverrideWriter {
     constructor(private db: DB) {}
 
     public async addPersonOverride(tx: TransactionClient, record: PersonOverride): Promise<void> {
@@ -175,5 +192,48 @@ class _PersonOverrideWriter {
         )
 
         return id
+    }
+}
+
+export class PersonOverrideWorker {
+    private writer: PersonOverrideWriter
+
+    constructor(private db: DB) {
+        this.writer = new PersonOverrideWriter(db)
+    }
+
+    public async handleBatch(): Promise<void> {
+        // TODO: need to ensure we have exclusive access on the table
+        await this.db.postgres.transaction(PostgresUse.COMMON_WRITE, 'handleNextPersonOverride', async (tx) => {
+            // TODO: probably would make sense to set a limit here
+            const rows = (
+                await this.db.postgres.query(
+                    tx,
+                    `SELECT * FROM posthog_pendingpersonoverrides ORDER BY id`,
+                    undefined,
+                    'handleNextPersonOverride'
+                )
+            ).rows
+            const records = rows.map((row) => [
+                row.id,
+                {
+                    teamId: row.team_id,
+                    oldPersonUuid: row.old_person_id,
+                    overridePersonUuid: row.override_person_id,
+                    oldestEvent: row.oldest_event,
+                }, // TODO: need better validation for the types in this object
+            ]) as [id: number, override: PersonOverride][]
+            const results = records.map(async ([id, record]) => {
+                await this.writer.addPersonOverride(tx, record).then(async () => {
+                    await this.db.postgres.query(
+                        tx,
+                        SQL`DELETE FROM posthog_pendingpersonoverrides WHERE id = ${id}`,
+                        undefined,
+                        'handleNextPersonOverride'
+                    )
+                })
+            })
+            await Promise.all(results)
+        })
     }
 }
