@@ -12,7 +12,7 @@ import { timeoutGuard } from '../../utils/db/utils'
 import { promiseRetry } from '../../utils/retries'
 import { status } from '../../utils/status'
 import { UUIDT } from '../../utils/utils'
-import { PersonOverrideManager } from './person-overrides'
+import { PersonOverrideWriter } from './person-overrides'
 import { captureIngestionWarning } from './utils'
 
 const MAX_FAILED_PERSON_MERGE_ATTEMPTS = 3
@@ -513,31 +513,25 @@ export class PersonState {
                     tx
                 )
 
-                const distinctIdMessages = await this.db.moveDistinctIds(otherPerson, mergeInto, tx)
+                const kafkaMessages = [
+                    ...updatePersonMessages,
+                    ...(await this.db.moveDistinctIds(otherPerson, mergeInto, tx)),
+                    ...(await this.db.deletePerson(otherPerson, tx)),
+                ]
 
-                const deletePersonMessages = await this.db.deletePerson(otherPerson, tx)
-
-                let personOverrideMessages: ProducerRecord[] = []
                 if (this.poEEmbraceJoin) {
-                    personOverrideMessages = [
-                        await new PersonOverrideManager(this.db).addPersonOverride(
-                            this.teamId,
-                            otherPerson,
-                            mergeInto,
-                            tx
-                        ),
-                    ]
+                    const overrideMessage = await new PersonOverrideWriter(this.db).addPersonOverride(
+                        this.teamId,
+                        otherPerson,
+                        mergeInto,
+                        tx
+                    )
+                    if (overrideMessage !== null) {
+                        kafkaMessages.push(overrideMessage)
+                    }
                 }
 
-                return [
-                    [
-                        ...personOverrideMessages,
-                        ...updatePersonMessages,
-                        ...distinctIdMessages,
-                        ...deletePersonMessages,
-                    ],
-                    person,
-                ]
+                return [kafkaMessages, person]
             }
         )
 

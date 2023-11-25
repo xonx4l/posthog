@@ -9,7 +9,7 @@ import { status } from '../../utils/status'
 import { castTimestampOrNow } from '../../utils/utils'
 import { SQL } from './person-state'
 
-export class PersonOverrideManager {
+export class PersonOverrideWriter {
     constructor(private db: DB) {}
 
     public async addPersonOverride(
@@ -17,7 +17,7 @@ export class PersonOverrideManager {
         oldPerson: Person,
         overridePerson: Person,
         tx: TransactionClient
-    ): Promise<ProducerRecord> {
+    ): Promise<ProducerRecord | null> {
         const mergedAt = DateTime.now()
         const oldestEvent = overridePerson.created_at
         /**
