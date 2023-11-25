@@ -15,8 +15,6 @@ type PersonOverride = {
     oldestEvent: DateTime // TODO: is this something that should be in the log table, or resolved at merge time?e
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- work in progress */
-
 export class DeferredPersonOverrideWriter {
     constructor(private db: DB) {}
 
@@ -33,10 +31,10 @@ export class DeferredPersonOverrideWriter {
             overridePersonUuid: overridePerson.uuid,
             oldestEvent: overridePerson.created_at,
         }
+        // TODO: cheating for now to see what happens in tests, this should write to the new table
+        await new _PersonOverrideWriter(this.db).addPersonOverride(tx, record)
     }
 }
-
-/* eslint-enable */
 
 class _PersonOverrideWriter {
     constructor(private db: DB) {}
