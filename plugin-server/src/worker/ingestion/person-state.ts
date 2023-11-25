@@ -519,7 +519,14 @@ export class PersonState {
 
                 let personOverrideMessages: ProducerRecord[] = []
                 if (this.poEEmbraceJoin) {
-                    personOverrideMessages = [await this.addPersonOverride(otherPerson, mergeInto, tx)]
+                    personOverrideMessages = [
+                        await new PersonOverrideManager(this.db).addPersonOverride(
+                            this.teamId,
+                            otherPerson,
+                            mergeInto,
+                            tx
+                        ),
+                    ]
                 }
 
                 return [
@@ -544,8 +551,13 @@ export class PersonState {
             .inc()
         return result
     }
+}
 
-    private async addPersonOverride(
+class PersonOverrideManager {
+    constructor(private db: DB) {}
+
+    public async addPersonOverride(
+        teamId: number,
         oldPerson: Person,
         overridePerson: Person,
         tx: TransactionClient
@@ -559,8 +571,8 @@ export class PersonState {
          2. Add an override from oldPerson to override person
          3. Update any entries that have oldPerson as the override person to now also point to the new override person. Note that we don't update `oldest_event`, because it's a heuristic (used to optimise squashing) tied to the old_person and nothing changed about the old_person who's events need to get squashed.
          */
-        const oldPersonId = await this.addPersonOverrideMapping(oldPerson, tx)
-        const overridePersonId = await this.addPersonOverrideMapping(overridePerson, tx)
+        const oldPersonId = await this.addPersonOverrideMapping(teamId, oldPerson, tx)
+        const overridePersonId = await this.addPersonOverrideMapping(teamId, overridePerson, tx)
 
         await this.db.postgres.query(
             tx,
@@ -572,7 +584,7 @@ export class PersonState {
                     oldest_event,
                     version
                 ) VALUES (
-                    ${this.teamId},
+                    ${teamId},
                     ${oldPersonId},
                     ${overridePersonId},
                     ${oldestEvent},
@@ -594,7 +606,7 @@ export class PersonState {
                     SET
                         override_person_id = ${overridePersonId}, version = COALESCE(version, 0)::numeric + 1
                     WHERE
-                        team_id = ${this.teamId} AND override_person_id = ${oldPersonId}
+                        team_id = ${teamId} AND override_person_id = ${oldPersonId}
                     RETURNING
                         old_person_id,
                         version,
@@ -646,7 +658,7 @@ export class PersonState {
         return personOverrideMessages
     }
 
-    private async addPersonOverrideMapping(person: Person, tx: TransactionClient): Promise<number> {
+    private async addPersonOverrideMapping(teamId: number, person: Person, tx: TransactionClient): Promise<number> {
         /**
             Update the helper table that serves as a mapping between a serial ID and a Person UUID.
 
@@ -668,7 +680,7 @@ export class PersonState {
                         uuid
                     )
                     VALUES (
-                        ${this.teamId},
+                        ${teamId},
                         '${person.uuid}'
                     )
                     ON CONFLICT("team_id", "uuid") DO NOTHING
