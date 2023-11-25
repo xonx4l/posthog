@@ -1,4 +1,3 @@
-import { ProducerRecord } from 'kafkajs'
 import { DateTime } from 'luxon'
 
 import { KAFKA_PERSON_OVERRIDE } from '../../config/kafka-topics'
@@ -42,7 +41,7 @@ export class DeferredPersonOverrideWriter {
 class _PersonOverrideWriter {
     constructor(private db: DB) {}
 
-    public async addPersonOverride(tx: TransactionClient, record: PersonOverride): Promise<ProducerRecord> {
+    public async addPersonOverride(tx: TransactionClient, record: PersonOverride): Promise<void> {
         const mergedAt = DateTime.now()
         /**
             We'll need to do 4 updates:
@@ -113,7 +112,7 @@ class _PersonOverrideWriter {
 
         status.debug('🔁', 'person_overrides_updated', { transitiveUpdates })
 
-        const personOverrideMessages: ProducerRecord = {
+        await this.db.kafkaProducer.queueMessage({
             topic: KAFKA_PERSON_OVERRIDE,
             messages: [
                 {
@@ -137,9 +136,7 @@ class _PersonOverrideWriter {
                     }),
                 })),
             ],
-        }
-
-        return personOverrideMessages
+        }) // TODO: acks?
     }
 
     private async addPersonOverrideMapping(tx: TransactionClient, teamId: number, personUuid: string): Promise<number> {
